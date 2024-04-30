@@ -3,6 +3,8 @@
 #include <string>
 #include <set>
 #include <map>
+#include <memory>
+#include "csr.h"
 using std::vector;
 using std::set;
 using std::map;
@@ -19,8 +21,12 @@ private:
     std::vector<double> pr;
     std::vector<size_t> num_outgoing;
     vector<vector<size_t>> rows;
+
+    std::shared_ptr<SparseMatrix> M;
+    std::shared_ptr<SparseMatrix> p;
 public:
     int read_file(const string &filename);
+    void parser();
     void pagerank();
     bool add_arc(size_t from, size_t to);
     int rows_resize(size_t dim);

@@ -7,6 +7,7 @@
 #include <math.h>
 #include <string>
 #include <cstring>
+#include <numeric>
 #include <limits>
 
 #include "table.h"
@@ -48,64 +49,69 @@ int Table::rows_resize(size_t dim) {
     return rows.size();
 }
 
+void Table::parser() {
+    size_t N = num_outgoing.size();
+    p = std::make_shared<SparseMatrix>(1, N);  // 行数为1，列数为N
+    double initialPR = 1.0 / N;
+
+    for (size_t i = 0; i < N; ++i) {
+        p->values.push_back(initialPR);  // 填充值
+        p->columns.push_back(i);         // 列索引，从0到N-1
+    }
+    p->rowPointers[0] = 0;  // 第一行开始于索引0
+    p->rowPointers[1] = N;  // 第一行结束于索引N
+
+
+    // std::cout << *p << std::endl;
+
+    // M = std::make_shared<SparseMatrix>(N, N);
+    // for (size_t j = 0; j < rows.size(); ++j) {
+    //     for (size_t i : rows[j]) {
+    //         double probability = 1.0 / num_outgoing[j];
+    //         M->values.push_back(probability);
+    //         M->columns.push_back(i);
+    //         M->rowPointers[j + 1]++;
+    //     }
+    // }
+
+    // for (size_t i = 1; i <= num_outgoing.size(); ++i) {
+    //     M->rowPointers[i] += M->rowPointers[i - 1];
+    // } 
+
+    M = std::make_shared<SparseMatrix>(N, N);
+    M->rowPointers[0] = 0;
+
+    for (size_t j = 0; j < rows.size(); ++j) {
+        if (rows[j].empty()) {
+            for (size_t i = 0; i < N; ++i) {
+                M->values.push_back(1.0 / N);
+                M->columns.push_back(i);
+            }
+            M->rowPointers[j + 1] = M->rowPointers[j] + N;
+        } else {
+            for (size_t i : rows[j]) {
+                double probability = 1.0 / num_outgoing[j];
+                M->values.push_back(probability);
+                M->columns.push_back(i);
+            }
+            M->rowPointers[j + 1] = M->rowPointers[j] + rows[j].size();
+        }
+    }
+    // std::cout << *M << std::endl;
+}
+
 void Table::pagerank() {
-    vector<double> old_pr;
-    double sum_pr;
-    double dangling_pr;
-    double diff = 1;
-    unsigned long num_itertations = 0;
-
-    size_t n = rows.size();
-    for (size_t i = 0; i < n; i++) {
-        pr[i] = 1.0 / n;
-    }
-    old_pr = pr;
-
-    while (diff > EPSILON && num_itertations < MAX_ITER) {
-        sum_pr = 0;
-        dangling_pr = 0;
-
-        for (size_t i = 0; i < n; i++) {
-            double cpr = pr[i];
-            sum_pr += cpr;
-            if (num_outgoing[i] == 0) {
-                dangling_pr += cpr;
+    size_t N = num_outgoing.size();
+    
+    for (int i = 0; i < MAX_ITER; ++i) {
+        p = std::make_shared<SparseMatrix>(*p * *M);
+        double sum = std::accumulate(p->values.begin(), p->values.end(), 0.0);
+        if (sum != 0) {  // Avoid division by zero
+            for (double &value : p->values) {
+                value /= sum;
             }
         }
-
-        for (int i = 0; i < n; i++) {
-            old_pr[i] = pr[i] / sum_pr;
-        }
-
-        sum_pr = 1;
-        /* An element of the A x I vector; all elements are identical */
-        double one_Av = D * dangling_pr / n;
-
-        /* An element of the 1 x I vector; all elements are identical */
-        double one_Iv = (1 - D) * sum_pr / n;
-
-        for (size_t i = 0; i < n; i++) {
-            double h = 0.0;
-            for (size_t j = 0; j < rows[i].size(); j++) {
-                size_t& ci = rows[i][j]; /* The current element of the H vector */
-                /* The current element of the H vector */
-                double h_v = (num_outgoing[ci])
-                    ? 1.0 / num_outgoing[ci]
-                    : 0.0;
-                h += h_v * old_pr[ci];
-            }
-            h *= D;
-            pr[i] = h + one_Av + one_Iv;
-        }
-
-        diff = 0;
-        for (size_t i = 0; i < n; i++) {
-            diff += fabs(pr[i] - old_pr[i]);
-        }
-
-        
-
-        num_itertations++;
     }
 
+    std::cout << *p << std::endl;
 }

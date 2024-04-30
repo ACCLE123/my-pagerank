@@ -9,18 +9,17 @@ int main(int argc, char** argv) {
     }
 
     Table t;
-    // 1. read file
     if (input != "") t.read_file(input);
     else {
         std::cerr << "Error: no input file" << std::endl;
         return 1;
     }
 
-    // t.test();
+    t.parser();
 
-    // 2. pagerank
     t.pagerank();
-    t.test();
+
+    // t.test();
 
 
     return 0;

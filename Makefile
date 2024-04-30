@@ -1,2 +1,2 @@
-pagerank: main.cpp table.cpp table.h
-	g++ -O3 -Wall -o pagerank main.cpp table.cpp --std=c++11
+pagerank: main.cpp table.cpp table.h csr.h csr.cpp
+	g++ -O3 -Wall -o pagerank main.cpp csr.cpp table.cpp --std=c++11
