@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
 
     t.pagerank();
 
-    // t.test();
+    t.write_file();
 
 
     return 0;

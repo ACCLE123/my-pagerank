@@ -24,12 +24,15 @@ private:
 
     std::shared_ptr<SparseMatrix> M;
     std::shared_ptr<SparseMatrix> p;
+
+    std::string filename_;
 public:
     int read_file(const string &filename);
     void parser();
     void pagerank();
     bool add_arc(size_t from, size_t to);
     int rows_resize(size_t dim);
+    int write_file();
 
     void test() {
         std::cout << "test" << std::endl;

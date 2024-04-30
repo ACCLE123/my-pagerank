@@ -13,6 +13,7 @@
 #include "table.h"
 
 int Table::read_file(const string &filename) {
+    filename_ = filename;
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Error: cannot open file " << filename << std::endl;
@@ -64,20 +65,7 @@ void Table::parser() {
 
     // std::cout << *p << std::endl;
 
-    // M = std::make_shared<SparseMatrix>(N, N);
-    // for (size_t j = 0; j < rows.size(); ++j) {
-    //     for (size_t i : rows[j]) {
-    //         double probability = 1.0 / num_outgoing[j];
-    //         M->values.push_back(probability);
-    //         M->columns.push_back(i);
-    //         M->rowPointers[j + 1]++;
-    //     }
-    // }
-
-    // for (size_t i = 1; i <= num_outgoing.size(); ++i) {
-    //     M->rowPointers[i] += M->rowPointers[i - 1];
-    // } 
-
+    // get M
     M = std::make_shared<SparseMatrix>(N, N);
     M->rowPointers[0] = 0;
 
@@ -95,23 +83,49 @@ void Table::parser() {
                 M->columns.push_back(i);
             }
             M->rowPointers[j + 1] = M->rowPointers[j] + rows[j].size();
-        }
+        }   
     }
+
+    SparseMatrix one(N, N);
+    // Initialize all elements to 1
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            one.values.push_back(1.0);
+            one.columns.push_back(j);
+        }
+        one.rowPointers[i] = i * N;
+    }
+    one.rowPointers[N] = N * N;
+
+    one = (1 - D) * one;
+    M = std::make_shared<SparseMatrix>(*M * D + one);
     // std::cout << *M << std::endl;
 }
 
 void Table::pagerank() {
-    size_t N = num_outgoing.size();
+    // size_t N = num_outgoing.size();
     
     for (int i = 0; i < MAX_ITER; ++i) {
         p = std::make_shared<SparseMatrix>(*p * *M);
         double sum = std::accumulate(p->values.begin(), p->values.end(), 0.0);
-        if (sum != 0) {  // Avoid division by zero
+        if (sum != 0) {
             for (double &value : p->values) {
                 value /= sum;
             }
         }
     }
 
-    std::cout << *p << std::endl;
+    // std::cout << *p << std::endl;
+}
+
+int Table::write_file() {
+    std::ofstream file(filename_ + ".out");
+    if (!file.is_open()) {
+        std::cerr << "Error: cannot open file output.txt" << std::endl;
+        return 1;
+    }
+
+    file << *p;
+
+    return 0;
 }

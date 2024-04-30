@@ -73,25 +73,108 @@ std::ostream& operator<<(std::ostream& os, const SparseMatrix& matrix) {
     return os;
 }
 
+SparseMatrix operator*(const SparseMatrix& A, double scalar) {
+    SparseMatrix result(A.numRows, A.numCols);
+    result.rowPointers = A.rowPointers; // 直接复制行指针
+
+    for (size_t i = 0; i < A.values.size(); i++) {
+        result.values.push_back(A.values[i] * scalar);
+        result.columns.push_back(A.columns[i]);
+    }
+
+    return result;
+}
+
+SparseMatrix operator*(double scalar, const SparseMatrix& A) {
+    return A * scalar; // 利用交换律，直接调用前一个函数
+}
+
+SparseMatrix SparseMatrix::operator+(const SparseMatrix& B) const {
+    if (numRows != B.numRows || numCols != B.numCols) {
+        throw std::invalid_argument("Matrices dimensions must be the same for addition.");
+    }
+
+    SparseMatrix C(numRows, numCols);
+    for (int i = 0; i < numRows; ++i) {
+        int a_index = rowPointers[i];
+        int b_index = B.rowPointers[i];
+
+        while (a_index < rowPointers[i + 1] && b_index < B.rowPointers[i + 1]) {
+            int a_col = columns[a_index];
+            int b_col = B.columns[b_index];
+
+            if (a_col == b_col) {
+                double sum = values[a_index] + B.values[b_index];
+                if (sum != 0.0) {
+                    C.values.push_back(sum);
+                    C.columns.push_back(a_col);
+                }
+                a_index++;
+                b_index++;
+            } else if (a_col < b_col) {
+                C.values.push_back(values[a_index]);
+                C.columns.push_back(a_col);
+                a_index++;
+            } else {
+                C.values.push_back(B.values[b_index]);
+                C.columns.push_back(b_col);
+                b_index++;
+            }
+        }
+
+        while (a_index < rowPointers[i + 1]) {
+            C.values.push_back(values[a_index]);
+            C.columns.push_back(columns[a_index]);
+            a_index++;
+        }
+
+        while (b_index < B.rowPointers[i + 1]) {
+            C.values.push_back(B.values[b_index]);
+            C.columns.push_back(B.columns[b_index]);
+            b_index++;
+        }
+
+        C.rowPointers[i + 1] = C.values.size();
+    }
+
+    return C;
+}
 
 // int main() {
-//     SparseMatrix A(2, 3);
-//     A.values = {0.3, 0.5, 0.4};
-//     A.columns = {0, 2, 1};
-//     A.rowPointers = {0, 2, 3};
-
-//     SparseMatrix B(3, 3);
-//     B.values = {0.2, 0.8, 0.7};
-//     B.columns = {1, 0, 2};
-//     B.rowPointers = {0, 1, 1, 3};
-
-//     SparseMatrix C = A * B;
-
-//     std::cout << A << std::endl;
-
-//     std::cout << B << std::endl;
-
-//     std::cout << C << std::endl;
+//     test1();
+//     test2();
 
 //     return 0;
 // }
+
+void test1() {
+    SparseMatrix A(2, 3);
+    A.values = {0.3, 0.5, 0.4};
+    A.columns = {0, 2, 1};
+    A.rowPointers = {0, 2, 3};
+
+    std::cout << A << std::endl;
+
+    SparseMatrix B = 2.0 * A;
+
+    std::cout << B << std::endl;
+}
+
+void test2() {
+    int n = 4;
+    SparseMatrix matrix(n, n);
+
+    // Initialize all elements to 1
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            matrix.values.push_back(1.0);
+            matrix.columns.push_back(j);
+        }
+        matrix.rowPointers[i] = i * n;
+    }
+    matrix.rowPointers[n] = n * n;
+
+    SparseMatrix A = matrix * 2.1 + matrix;
+    SparseMatrix B = matrix + A;
+    std::cout << B  << std::endl;
+}
